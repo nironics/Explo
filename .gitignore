@@ -1,0 +1,9 @@
+.env
+.DS_Store
+/main
+tmp/
+.air.toml
+logs/
+explo
+src/web/dist/
+src/web/frontend/node_modules/

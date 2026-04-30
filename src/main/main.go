@@ -2,6 +2,7 @@ package main
 
 import (
 	"explo/src/logging"
+	"explo/src/web"
 	"log"
 	"log/slog"
 	"os"
@@ -34,6 +35,23 @@ func setup(cfg *config.Config) {
 }
 
 func main() {
+	if os.Getenv("WEB_UI") == "true" {
+		cfgPath := os.Getenv("WEB_CFG_PATH")
+		if cfgPath == "" {
+			cfgPath = ".env"
+		}
+		exploPath, err := os.Executable()
+		if err != nil {
+			log.Fatal("could not determine executable path: ", err)
+		}
+		addr := os.Getenv("WEB_ADDR")
+		if addr == "" {
+			addr = ":7288"
+		}
+		srv := web.NewServer(cfgPath, exploPath)
+		log.Fatal(srv.Start(addr))
+	}
+
 	var cfg config.Config
 	if err := cfg.GetFlags(); err != nil {
 		log.Fatal(err)
@@ -44,19 +62,19 @@ func main() {
 	slog.Info("Starting Explo...")
 
 	httpClient := initHttpClient()
-	client, err := client.NewClient(&cfg)
-	if err != nil {
-		slog.Error(err.Error(), "notify", true)
-		os.Exit(1)
-	}
 	discovery := discovery.NewDiscoverer(cfg.DiscoveryCfg, httpClient)
-	downloader, err := downloader.NewDownloader(&cfg.DownloadCfg, httpClient, cfg.Flags.ExcludeLocal)
+	tracks, err := discovery.Discover()
 	if err != nil {
 		slog.Error(err.Error(), "notify", true)
 		os.Exit(1)
 	}
 
-	tracks, err := discovery.Discover()
+	client, err := client.NewClient(&cfg)
+	if err != nil {
+		slog.Error(err.Error(), "notify", true)
+		os.Exit(1)
+	}
+	downloader, err := downloader.NewDownloader(&cfg.DownloadCfg, httpClient, cfg.Flags.ExcludeLocal)
 	if err != nil {
 		slog.Error(err.Error(), "notify", true)
 		os.Exit(1)
