@@ -51,6 +51,7 @@ type ServerConfig struct {
 	WebDataDir  string `env:"WEB_DATA_PATH" env-default:"/opt/explo/config/"`
 	WebEnvPath  string `env:"WEB_ENV_PATH" env-default:"/opt/explo/.env"`
 	CacheSizeMB int64  `env:"WEB_CACHE_MB" env-default:"500"`
+	PlexWebhookToken string `env:"PLEX_WEBHOOK_TOKEN"` // enables POST /api/plex/webhook?token=...
 	ExploPath   string
 }
 

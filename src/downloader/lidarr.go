@@ -324,6 +324,41 @@ func (c *Lidarr) GetTrack(track *models.Track) error {
 	return nil
 }
 
+// RequestAlbum monitors the track's album in Lidarr and searches for it,
+// adding the album (and its artist) first when Lidarr doesn't have it yet.
+func (c *Lidarr) RequestAlbum(track *models.Track) error {
+	c.AddHeader()
+	if err := c.getReleaseGroupId(track); err != nil {
+		return err
+	}
+
+	queryURL := fmt.Sprintf("%s/api/v1/album?foreignAlbumId=%s", c.Cfg.URL, track.MusicBrainzReleaseGroupID)
+	body, err := c.HttpClient.MakeRequest("GET", queryURL, nil, c.Headers)
+	if err != nil {
+		return fmt.Errorf("failed to check library for album: %w", err)
+	}
+	var albums []LidarrAlbum
+	if err = util.ParseResp(body, &albums); err != nil {
+		return fmt.Errorf("failed to unmarshal library albums: %w", err)
+	}
+
+	if len(albums) == 0 {
+		if err := c.getRootDirectory(); err != nil {
+			return err
+		}
+		return c.addNewAlbum(track)
+	}
+
+	payload, err := json.Marshal(map[string]any{"albumIds": []int{albums[0].ID}, "monitored": true})
+	if err != nil {
+		return fmt.Errorf("marshal error: %w", err)
+	}
+	if _, err = c.HttpClient.MakeRequest("PUT", c.Cfg.URL+"/api/v1/album/monitor", bytes.NewReader(payload), c.Headers); err != nil {
+		return fmt.Errorf("failed to monitor album: %w", err)
+	}
+	return c.triggerAlbumSearch(albums[0].ID)
+}
+
 func (c *Lidarr) addNewAlbum(track *models.Track) error {
 
 	payload := map[string]any{

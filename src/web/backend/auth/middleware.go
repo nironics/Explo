@@ -115,7 +115,8 @@ func (m *SessionManager) Handle(next http.Handler) http.Handler {
 				r.Method == http.MethodPatch ||
 				r.Method == http.MethodDelete
 
-		if isMutating && rws.URL.Path != "/api/ui/login" {
+		// the Plex webhook can't carry a CSRF token; it checks its own URL token
+		if isMutating && rws.URL.Path != "/api/ui/login" && rws.URL.Path != "/api/plex/webhook" {
 			if !m.verifyCSRFToken(rws, session) {
 				http.Error(sw, "CSRF token mismatch", http.StatusForbidden)
 				return

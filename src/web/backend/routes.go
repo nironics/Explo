@@ -94,6 +94,7 @@ func (s *Server) registerRunRoutes() {
 }
 
 func (s *Server) registerMiscRoutes() {
+	s.mux.HandleFunc("POST /api/plex/webhook", s.handlePlexWebhook) // token-guarded, see handler
 	s.mux.Handle("GET /api/ui/logs", s.auth(s.handleGetLog))
 	s.mux.Handle("GET /api/ui/browse", s.auth(s.handleBrowse))
 
